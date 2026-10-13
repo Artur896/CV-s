@@ -7,9 +7,12 @@ como proveedor de IA opcional, con un **modo sin IA** totalmente funcional como 
 
 ## Arquitectura
 
-- `server/`: API en Node.js + Express + TypeScript, base de datos SQLite (módulo nativo `node:sqlite`
-  de Node, sin dependencias de compilación nativa).
+- `server/`: API en Node.js + Express + TypeScript. Base de datos SQLite en desarrollo (módulo
+  nativo `node:sqlite`, sin dependencias de compilación nativa) y Postgres (Supabase) en producción
+  cuando hay `DATABASE_URL` configurada — ver `server/src/db/db.ts`.
 - `client/`: interfaz en React + TypeScript + Vite.
+- `api/index.ts`: punto de entrada para desplegar la API como función serverless en Vercel
+  (reexporta la app de Express de `server/src/index.ts`).
 - Todo el contenido (preguntas, interfaz, CV generado) está en español.
 
 ## Requisitos
@@ -100,6 +103,39 @@ Si `GROQ_API_KEY` está vacío, la llamada falla, hay timeout, o se alcanza el l
 sigue funcionando por completo: preguntas de seguimiento predefinidas, habilidades por reglas, y CV
 generado por plantilla (reescritura simple + resumen de perfil basado en las categorías y
 habilidades detectadas). Nunca se simula una respuesta de IA.
+
+## Despliegue en Vercel + Supabase
+
+1. **Crear el proyecto en Supabase** (https://supabase.com) y copiar el connection string de
+   **Settings → Database → Connection pooling** (modo *transaction*, puerto `6543`). Las funciones
+   serverless de Vercel abren muchas conexiones cortas; el pooler evita agotar las conexiones
+   directas de Postgres. El esquema de tablas se crea solo en el primer request
+   (`server/src/db/schema.postgres.sql`, ejecutado por `ensureSchema()`); no hace falta correr
+   migraciones a mano.
+2. **Importar el repositorio en Vercel** (https://vercel.com/new). El `vercel.json` de la raíz ya
+   configura todo lo necesario:
+   - `installCommand`/`buildCommand`: instala `server/` y `client/`, y compila el frontend
+     (`client/dist`).
+   - La API se despliega como función serverless desde `api/index.ts`, con las peticiones a
+     `/api/*` enrutadas ahí (`rewrites`).
+   - El resto de rutas caen al `index.html` del cliente (SPA con React Router).
+3. **Variables de entorno en Vercel** (Project Settings → Environment Variables):
+   ```
+   DATABASE_URL=<connection string del pooler de Supabase>
+   GROQ_API_KEY=            # opcional, vacío = modo sin IA
+   GROQ_MODEL=openai/gpt-oss-20b
+   AI_PROVIDER=groq
+   MAX_AI_REQUESTS_PER_INTERVIEW=8
+   MAX_AI_REQUESTS_PER_DAY=50
+   AI_TIMEOUT_MS=15000
+   AI_MAX_TOKENS=600
+   ```
+   `PORT` y `DB_PATH` no aplican en Vercel (no hay `app.listen` ni filesystem persistente).
+4. **Generación de PDF en producción**: en Vercel se usa `puppeteer-core` + `@sparticuz/chromium`
+   (Chromium optimizado para entornos serverless) en vez del Chromium completo que descarga
+   `puppeteer` en desarrollo — ver `server/src/services/cvTemplate.ts`. Si el PDF tarda más de los
+   `maxDuration` configurados (30s en `vercel.json`), hay que subirlo según el plan de Vercel
+   (Hobby: hasta 60s; Pro: hasta 300s).
 
 ## Limitaciones conocidas
 

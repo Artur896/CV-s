@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { env } from './config/env';
-import { getDb } from './db/db';
-import { errorHandler } from './middleware/errorHandler';
+import { ensureSchema } from './db/db';
+import { errorHandler, asyncHandler } from './middleware/errorHandler';
 import { candidatesRouter } from './routes/candidates';
 import { interviewsRouter } from './routes/interviews';
 import { responsesRouter } from './routes/responses';
@@ -12,10 +12,18 @@ import { aiRouter } from './routes/ai';
 
 const app = express();
 
-app.use(cors());
+app.disable('x-powered-by');
+app.use(cors(env.CORS_ORIGIN ? { origin: env.CORS_ORIGIN } : undefined));
 app.use(express.json({ limit: '1mb' }));
 
-getDb(); // inicializa el esquema de la base de datos al arrancar
+// Se espera (memoizado) en cada request: en local/sqlite ya está listo de forma síncrona,
+// en producción (Postgres/Supabase) la primera llamada crea el esquema antes de atender nada.
+app.use(
+  asyncHandler(async (_req, _res, next) => {
+    await ensureSchema();
+    next();
+  })
+);
 
 app.use('/api/candidates', candidatesRouter);
 app.use('/api/interviews', interviewsRouter);

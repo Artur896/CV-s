@@ -11,10 +11,12 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^131.0.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
-    "puppeteer": "^23.9.0",
+    "pg": "^8.13.1",
+    "puppeteer-core": "^23.9.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -22,10 +24,12 @@
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.1",
+    "@types/pg": "^8.11.10",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^9.0.8",
     "jest": "^29.7.0",
     "nodemon": "^3.1.7",
+    "puppeteer": "^23.9.0",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",

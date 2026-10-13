@@ -1,7 +1,28 @@
 import fs from 'fs';
 import path from 'path';
-import puppeteer from 'puppeteer';
+import type { Browser } from 'puppeteer-core';
+import puppeteerCore from 'puppeteer-core';
 import { Candidate, ResponseRow, DetectedSkill, CvDraft } from '../types';
+
+// En Vercel (y otros entornos serverless) no se puede usar el Chromium completo que descarga
+// `puppeteer` (excede el límite de tamaño de las funciones). Ahí se usa `puppeteer-core` con el
+// binario optimizado de `@sparticuz/chromium`. En desarrollo local se usa el Chromium que `puppeteer`
+// descarga al instalar dependencias.
+async function launchBrowser(): Promise<Browser> {
+  const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+  if (isServerless) {
+    const chromium = (await import('@sparticuz/chromium')).default;
+    return puppeteerCore.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: true
+    });
+  }
+
+  const puppeteer = (await import('puppeteer')).default;
+  return puppeteer.launch({ headless: true, args: ['--no-sandbox'] }) as unknown as Promise<Browser>;
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -58,7 +79,7 @@ export function buildCvHtml(data: CvRenderData): string {
 }
 
 export async function renderCvPdf(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });

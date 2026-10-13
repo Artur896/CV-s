@@ -27,15 +27,15 @@ export async function initSchema(): Promise<void> {
 }
 
 export async function dbGet<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
-  return getInstance().prepare(sql).get(...params) as T | undefined;
+  return getInstance().prepare(sql).get(...(params as never[])) as T | undefined;
 }
 
 export async function dbAll<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-  return getInstance().prepare(sql).all(...params) as T[];
+  return getInstance().prepare(sql).all(...(params as never[])) as T[];
 }
 
 export async function dbRun(sql: string, params: unknown[] = []): Promise<void> {
-  getInstance().prepare(sql).run(...params);
+  getInstance().prepare(sql).run(...(params as never[]));
 }
 
 export function closeDb(): void {

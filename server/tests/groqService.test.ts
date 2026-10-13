@@ -1,10 +1,12 @@
 import { resetTestDb } from './testDb';
 
 describe('GroqService', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetModules();
     resetTestDb();
     process.env.GROQ_API_KEY = 'test-key';
+    const { ensureSchema } = require('../src/db/db');
+    await ensureSchema();
   });
 
   afterEach(() => {
@@ -51,12 +53,10 @@ describe('GroqService', () => {
     const { generateFollowUp } = require('../src/services/GroqService');
     await expect(generateFollowUp('interview-1', 'pregunta', 'respuesta')).rejects.toThrow();
 
-    const { getDb } = require('../src/db/db');
-    const db = getDb();
-    const row = db.prepare('SELECT * FROM ai_usage_log ORDER BY created_at DESC LIMIT 1').get() as {
-      success: number;
-      call_type: string;
-    };
+    const { dbGet } = require('../src/db/db');
+    const row = await dbGet<{ success: number; call_type: string }>(
+      'SELECT * FROM ai_usage_log ORDER BY created_at DESC LIMIT 1'
+    );
     expect(row.success).toBe(0);
     expect(row.call_type).toBe('follow_up');
   });
