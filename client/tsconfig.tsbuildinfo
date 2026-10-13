@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/api/client.ts","./src/components/offlinebanner.tsx","./src/pages/adminpage.tsx","./src/pages/candidatenewpage.tsx","./src/pages/candidateslistpage.tsx","./src/pages/cvreviewpage.tsx","./src/pages/interviewpage.tsx","./src/pages/settingspage.tsx","./src/types/index.ts"],"version":"5.9.3"}
