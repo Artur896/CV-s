@@ -11,8 +11,6 @@ como proveedor de IA opcional, con un **modo sin IA** totalmente funcional como 
   nativo `node:sqlite`, sin dependencias de compilación nativa) y Postgres (Supabase) en producción
   cuando hay `DATABASE_URL` configurada — ver `server/src/db/db.ts`.
 - `client/`: interfaz en React + TypeScript + Vite.
-- `api/index.ts`: punto de entrada para desplegar la API como función serverless en Vercel
-  (reexporta la app de Express de `server/src/index.ts`).
 - Todo el contenido (preguntas, interfaz, CV generado) está en español.
 
 ## Requisitos
@@ -112,13 +110,15 @@ habilidades detectadas). Nunca se simula una respuesta de IA.
    directas de Postgres. El esquema de tablas se crea solo en el primer request
    (`server/src/db/schema.postgres.sql`, ejecutado por `ensureSchema()`); no hace falta correr
    migraciones a mano.
-2. **Importar el repositorio en Vercel** (https://vercel.com/new). El `vercel.json` de la raíz ya
-   configura todo lo necesario:
-   - `installCommand`/`buildCommand`: instala `server/` y `client/`, y compila el frontend
-     (`client/dist`).
-   - La API se despliega como función serverless desde `api/index.ts`, con las peticiones a
-     `/api/*` enrutadas ahí (`rewrites`).
-   - El resto de rutas caen al `index.html` del cliente (SPA con React Router).
+2. **Importar el repositorio en Vercel** (https://vercel.com/new). El `vercel.json` de la raíz
+   define el proyecto como dos **servicios** (ver https://vercel.com/docs/services):
+   - `client`: se construye desde `client/` con el framework Vite (build `client/dist`).
+   - `server`: se construye desde `server/` con el framework Express (`npm run build`, compila
+     `server/src` a `server/dist`).
+   - `rewrites` enruta `/api/*` al servicio `server` y todo lo demás al servicio `client` (para que
+     funcione el ruteo de la SPA con React Router).
+   - No hay `bindings` entre servicios: el único cruce es el navegador llamando a `/api/...`, no hay
+     llamadas servidor-a-servidor entre `client` y `server`.
 3. **Variables de entorno en Vercel** (Project Settings → Environment Variables):
    ```
    DATABASE_URL=<connection string del pooler de Supabase>
